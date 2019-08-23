@@ -43,6 +43,23 @@ if show_food_units == -1 then
 	show_food_units = tonumber(GetModConfigData("show_food_units")) or 0
 end
 
+local chestR = tonumber(GetModConfigData('chestR',true)) or -1
+if chestR == -1 then
+	chestR = tonumber(GetModConfigData('chestR')) or 0.3
+	if (chestR == -1) then chestR = 0.3 end
+end
+local chestG = tonumber(GetModConfigData('chestG',true)) or -1
+if chestG == -1 then
+	chestG = tonumber(GetModConfigData('chestG')) or 1
+	if (chestG == -1) then chestG = 1 end
+end
+local chestB = tonumber(GetModConfigData('chestB',true)) or -1
+if chestB == -1 then
+	chestB = tonumber(GetModConfigData('chestB')) or 1
+	if (chestB == -1) then chestB = 1 end
+end
+--print('RGB CHEST',chestR,chestG,chestB)
+
 --Название на английском, краткая сетевая строка-алиас (для пересылки).
 --Если алиас начинается с маленькой буквы, то он обязан быть длиной в 1 букву. Если с большой, то 2 (вторая буква может быть любого регистра).
 local MY_STRINGS =
@@ -1522,7 +1539,7 @@ do
 		if c == nil then --Нет локального игрока или classified
 			return ""
 		end
-		--c.showme_hint1
+		--c.showme_hint
 		local i = string.find(c.showme_hint1,';',1,true)
 		if i == nil then --Строка имеет неправильный формат.
 			return ""
@@ -1559,7 +1576,7 @@ do
 					end
 					old_inst = inst
 					--Посылаем желаемую подсказку.
-					SendModRPCToServer(MOD_RPC.ShowMeHint.Hint, inst.GUID, inst)
+					SendModRPCToServer(MOD_RPC.ShowMeSHint.Hint, inst.GUID, inst)
 				end
 			end)
 		end)--]]
@@ -1580,7 +1597,7 @@ do
 		local LOCAL_STRING_CACHE = {} --База данных строк, чтобы не обсчитывать замены каждый раз (правда, будет потихоньку пожирать память)
 		AddClassPostConstruct("widgets/hoverer",function(hoverer) --hoverer=self
 			local old_SetString = hoverer.text.SetString
-			hoverer.text.SetString = function(text,str,...) --text=self
+			hoverer.text.SetString = function(text,str) --text=self
 				--print(tostring(str))
 				local target = _G.TheInput:GetHUDEntityUnderMouse()
 				if target ~= nil then
@@ -1681,18 +1698,18 @@ do
 					if target ~= save_target or last_check_time + 1 < GetTime() then
 						save_target = target
 						last_check_time = GetTime()
-						SendModRPCToServer(MOD_RPC.ShowMeHint.Hint, save_target.GUID, save_target)
+						SendModRPCToServer(MOD_RPC.ShowMeSHint.Hint, save_target.GUID, save_target)
 					end
 				else
 					--print("target nil")
 				end
-				return old_SetString(text,str,...)
+				return old_SetString(text,str)
 			end
 		end)
 	end
 	
 	--Обработчик на сервере
-	AddModRPCHandler("ShowMeHint", "Hint", function(player, guid, item)
+	AddModRPCHandler("ShowMeSHint", "Hint", function(player, guid, item)
 		if player.player_classified == nil then
 			print("ERROR: player_classified not found!")
 			return
@@ -1781,7 +1798,7 @@ do
 		--	print("Found!!!!! Problem solved",err)
 		--end
 		if c:IsEmpty() then
-			inst.net_ShowMe_chest1:set('')
+			inst.net_ShowMe_chst:set('')
 			return
 		end
 		local arr = {} -- [префаб]=true
@@ -1814,7 +1831,7 @@ do
 				s = k
 			end
 		end
-		inst.net_ShowMe_chest1:set(s) --Посылаем данные.
+		inst.net_ShowMe_chst:set(s) --Посылаем данные.
 	end
 	
 	--Обновляет подсветку сундука. Функция должна сама узнавать, что в руке игрока.
@@ -1837,7 +1854,7 @@ do
 				if inst.ShowMeColor then
 					inst.ShowMeColor(false)
 				else
-					inst.AnimState:SetMultColour(0.3,1,1,1)
+					inst.AnimState:SetMultColour(chestR,chestG,chestB,1)
 					inst.b_ShowMe_changed_color = true
 				end
 			end
@@ -1846,7 +1863,7 @@ do
 	
 	local function OnShowMeChestDirty(inst)
 		--inst.components.HuntGameLogic.hunt_kills = inst.components.HuntGameLogic.net_hunt_kills:value()
-		local str = inst.net_ShowMe_chest1:value()
+		local str = inst.net_ShowMe_chst:value()
 		--inst.test_str = str --test
 		--print('Test Chest:',str)
 		local t = inst.ShowMe_chest_table
@@ -1860,9 +1877,9 @@ do
 	end	
 
 	local function InitChest(inst)
-		inst.net_ShowMe_chest1 = net_string(inst.GUID, "ShowMe_chest1", "ShowMe_chest_dirty1" )
+		inst.net_ShowMe_chst = net_string(inst.GUID, "ShowMe_chst", "ShowMe_chst_dirty" )
 		if CLIENT_SIDE then
-			inst:ListenForEvent("ShowMe_chest_dirty1", OnShowMeChestDirty)
+			inst:ListenForEvent("ShowMe_chst_dirty", OnShowMeChestDirty)
 			chests_around[inst] = true
 			inst.ShowMe_chest_table = {}
 			inst.ShowTable = function() for k in pairs(inst.ShowMe_chest_table) do print(k) end end --debug

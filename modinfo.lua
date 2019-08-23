@@ -26,88 +26,124 @@ priority = 0.00666155465 --Priority does not matter.
 
 server_filter_tags = {"show"}
 
+local color_options = {
+	{description = "Auto", data = -1,},
+	{description = "0%", data = 0,},
+	{description = "10%", data = 0.1,},
+	{description = "20%", data = 0.2,},
+	{description = "30%", data = 0.3,},
+	{description = "40%", data = 0.4,},
+	{description = "50%", data = 0.5,},
+	{description = "60%", data = 0.6,},
+	{description = "70%", data = 0.7,},
+	{description = "80%", data = 0.8,},
+	{description = "90%", data = 0.9,},
+	{description = "100%", data = 1,},
+}
+
 
 configuration_options =
 {
-    --[[{
-        name = "message_style",
-        label = "Style",
-        options = 
-        {
-            {description = "Isolation ->", data = 1},
-            {description = "isolation ->", data = 2},
-            {description = "Isol ->", data = 3},
-            {description = "isol ->", data = 4}, 
-            {description = "<- Warm", data = 5}, 
-            {description = "<- warm", data = 6}, 
-        }, 
-        default = 1,
-    },--]]
+	--[[{
+		name = "message_style",
+		label = "Style",
+		options = 
+		{
+			{description = "Isolation ->", data = 1},
+			{description = "isolation ->", data = 2},
+			{description = "Isol ->", data = 3},
+			{description = "isol ->", data = 4}, 
+			{description = "<- Warm", data = 5}, 
+			{description = "<- warm", data = 6}, 
+		}, 
+		default = 1,
+	},--]]
 	{
-        name = "food_style",
-        label = "Food Style",
-        options = 
-        {
-            {description = "undefined", data = 0, hover = "?"},
-            {description = "long", data = 1, hover = "Hunger: +12.5 / Sanity: -10 / Health: +3"},
-            {description = "short", data = 2, hover = "+12.5 / -10 / +3"},
-        }, 
-        default = 0,
-    },
+		name = "food_style",
+		label = "Food Style",
+		options = 
+		{
+			{description = "undefined", data = 0, hover = "?"},
+			{description = "long", data = 1, hover = "Hunger: +12.5 / Sanity: -10 / Health: +3"},
+			{description = "short", data = 2, hover = "+12.5 / -10 / +3"},
+		}, 
+		default = 0,
+	},
 	{
-        name = "food_order",
-        label = "Food Properties Order",
-        options = 
-        {
-            {description = "undefined", data = 0, hover = "?"},
-            {description = "interface", data = 1, hover = "Hunger / Sanity / Health"},
-            {description = "wikia", data = 2, hover = "Health / Hunger / Sanity"},
-        }, 
-        default = 0,
-    },
+		name = "food_order",
+		label = "Food Properties Order",
+		options = 
+		{
+			{description = "undefined", data = 0, hover = "?"},
+			{description = "interface", data = 1, hover = "Hunger / Sanity / Health"},
+			{description = "wikia", data = 2, hover = "Health / Hunger / Sanity"},
+		}, 
+		default = 0,
+	},
 	{
-        name = "food_estimation",
-        label = "Estimate Stale Status",
+		name = "food_estimation",
+		label = "Estimate Stale Status",
 		hover = "Should we estimate the stale status?",
-        options = 
-        {
-            {description = "undefined", data = -1, hover = "Yes"},
-            {description = "No", data = 0, hover = "No"},
-            {description = "Yes", data = 1, hover = "Yes"},
-        }, 
-        default = -1,
-    },
+		options = 
+		{
+			{description = "undefined", data = -1, hover = "Yes"},
+			{description = "No", data = 0, hover = "No"},
+			{description = "Yes", data = 1, hover = "Yes"},
+		}, 
+		default = -1,
+	},
 	{
-        name = "show_food_units",
-        label = "Show Food Units",
+		name = "show_food_units",
+		label = "Show Food Units",
 		hover = "For example, units of meat, units of veggie etc.",
-        options = 
-        {
-            {description = "undefined", data = -1, hover = "Yes"},
-            {description = "No", data = 0, hover = "No"},
-            {description = "Yes", data = 1, hover = "Yes"},
+		options = 
+		{
+			{description = "undefined", data = -1, hover = "Yes"},
+			{description = "No", data = 0, hover = "No"},
+			{description = "Yes", data = 1, hover = "Yes"},
 			{description = "Forbidden", data = 2, hover = "Server won't send food info to clients\nand their settings will not matter."},
-        }, 
-        default = -1,
-    },
+		}, 
+		default = -1,
+	},
 	{
-        name = "lang",
-        label = "Language",
+		name = "lang",
+		label = "Language",
 		--hover = "",
-        options = 
-        {
-            {description = "Auto", data = "auto", hover = "Detect Language Pack"},
-            {description = "en", data = "en", hover = "English"},
-            {description = "ru", data = "ru", hover = "Russian"},
-            {description = "chs", data = "chs", hover = "Simplified Chinese"},
-            {description = "cht", data = "cht", hover = "Traditional Chinese"},
-            {description = "br", data = "br", hover = "Brazilian Portuguese"},
-            {description = "pl", data = "pl", hover = "Polish"},
-            {description = "kr", data = "kr", hover = "Korean"},
-            {description = "es", data = "es", hover = "Spanish"},
-        }, 
-        default = "auto",
-    },
+		options = 
+		{
+			{description = "Auto", data = "auto", hover = "Detect Language Pack"},
+			{description = "en", data = "en", hover = "English"},
+			{description = "ru", data = "ru", hover = "Russian"},
+			{description = "chs", data = "chs", hover = "Simplified Chinese"},
+			{description = "cht", data = "cht", hover = "Traditional Chinese"},
+			{description = "br", data = "br", hover = "Brazilian Portuguese"},
+			{description = "pl", data = "pl", hover = "Polish"},
+			{description = "kr", data = "kr", hover = "Korean"},
+			{description = "es", data = "es", hover = "Spanish"},
+		}, 
+		default = "auto",
+	},
+	{
+		name = "chestR",
+		label = "Chest Col (Red)",
+		hover = "This is red component of highlighted chests color.",
+		options = color_options,
+		default = -1,
+	},
+	{
+		name = "chestG",
+		label = "Chest Col (Green)",
+		hover = "This is green component of highlighted chests color.",
+		options = color_options,
+		default = -1,
+	},
+	{
+		name = "chestB",
+		label = "Chest Col (Blue)",
+		hover = "This is blue component of highlighted chests color.",
+		options = color_options,
+		default = -1,
+	},
 }
 
 

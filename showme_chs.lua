@@ -65,6 +65,7 @@ SHOWME_STRINGS = {
 	uses_1 = "1 次可使用,总次数 ",
 	uses_many = " 次可使用,总次数 ", --X uses of Y, where X > 1
 	days = " 天", --Spoil in N days.
+	temperature = '温度',
 }
 
 FOOD_TAGS = { --"dried" and "precook" are excluded.

@@ -112,6 +112,11 @@ local MY_STRINGS =
 	{ durability = 'Durability:' },
 	{ strength = 'Strength:' },
 	{ aoe = "AoE:" },
+	
+	{ food_temperature = '' },
+	{precipitationrate="Global Rain:" },
+	{wetness="Global Wetness:" },
+	{growable='' },
 }
 
 SHOWME_STRINGS = {
@@ -122,6 +127,8 @@ SHOWME_STRINGS = {
 	uses_1 = "1 use of ",
 	uses_many = " uses of ", --X uses of Y, where X > 1
 	days = " days", --Spoil in N days.
+	temperature = "Temperature", -- used at least in food info
+	paused = 'Paused',
 }
 
 FOOD_TAGS = {}
@@ -181,22 +188,37 @@ MY_DATA.water_poisoned.fn = function(arr)
 	return arr.data.desc
 end
 
-MY_DATA.timer.fn = function(arr)
-	local total = _G.tonumber(arr.param[1])
-	local name = arr.param[2]
+local function DataTimerFn(seconds)
+	local total = math.abs(tonumber(seconds))
 	local hours = math.floor(total * 0.0002777777777777) --целое кол-во часов. 1/3600
 	local mins = math.floor((total - (hours * 3600)) * 0.01666666666666) --целое. 1/60
 	local secs = total - (hours * 3600) - (mins * 60) --тоже должно быть целым.
-	return arr.data.desc
-		.. (name and (' "'..name..'": ') or ': ')
-		.. (hours > 0 and (hours .. ':'
+	return 
+		(hours > 0 and (hours .. ':'
 			.. (mins > 9 and mins or ('0' .. mins)) .. ':'
 			.. (secs > 9 and secs or ('0' .. secs))
 		) or ( mins .. ':'
 			.. (secs > 9 and secs or ('0' .. secs))
 		))
 end
+MY_DATA.timer.fn = function(arr)
+	local name = arr.param[2]
+	return arr.data.desc
+		.. (name and (' "'..name..'": ') or ': ')
+		.. DataTimerFn(arr.param[1])
+end
+
 MY_DATA.durability.fn = DefaultFraction
+
+-- Temperature: +10, 0:05
+MY_DATA.food_temperature.fn = function(arr) -- { temperature, time }
+	local temperature_str = arr.param[1]
+	if tonumber(temperature_str) > 0 then
+		temperature_str = '+' .. temperature_str
+	end
+	local time_str = DataTimerFn(arr.param[2])
+	return SHOWME_STRINGS.temperature .. ': ' .. temperature_str .. ', ' .. time_str
+end
 
 
 MY_DATA.sanity_character.percent = true
@@ -227,13 +249,17 @@ local function ConvertTemperature(val)
 	if is_Fahrenheit then
 		return math.floor(1.8*(val) + 32.5).."\176F" 
 	else
-		return math.floor(val/2 + 0.5) .. "\176C"
+		return math.floor(val*0.5 + 0.5) .. "\176C"
 	end
+end
+
+local function MainConvertTemperature(val)
+	return AOS_Temperature_fn and AOS_Temperature_fn(tonumber(val)) or ConvertTemperature(tonumber(val))
 end
 
 MY_DATA.temperature.sign = true
 MY_DATA.temperature.fn = function(arr)
-	arr.param[1] = AOS_Temperature_fn and AOS_Temperature_fn(tonumber(arr.param[1])) or ConvertTemperature(tonumber(arr.param[1]))
+	arr.param[1] = MainConvertTemperature(arr.param[1])
 	return DefaultDisplayFn(arr)
 end
 
@@ -326,6 +352,13 @@ MY_DATA.domest.percent = true
 
 MY_DATA.crop.fn = function(arr) -- Product: percent
 	return GetPrefabFancyName(arr.param[1]) .. ": " .. tostring(arr.param[2]) .. "%"
+end
+
+MY_DATA.growable.fn = function(arr) -- stage num or name, time, paused (1/0)
+	arr=arr.param;
+	local stagename = tonumber(arr[1]) and ('#' .. tostring(arr[1])) or tostring(arr[1]);
+	local time_str = DataTimerFn(arr[2]);
+	return stagename .. (arr[3] == '1' and ' ('..SHOWME_STRINGS.paused..'): ' or ': ') .. time_str;
 end
 
 --MY_STRINGS_OVERRIDE = nil
@@ -510,15 +543,15 @@ if CLIENT_SIDE then
 			if status.temperature then
 				AOS = true
 				local old_SetString = status.temperature.num.SetString
-				status.temperature.num.SetString = function(self,s)
-					return old_SetString(self,FixTemperature(s))
+				status.temperature.num.SetString = function(self,s,...)
+					return old_SetString(self,FixTemperature(s),...)
 				end
 			end
 			if status.worldtemp then
 				AOS = true
 				local old_SetString = status.worldtemp.num.SetString
-				status.worldtemp.num.SetString = function(self,s)
-					return old_SetString(self,FixTemperature(s))
+				status.worldtemp.num.SetString = function(self,s,...)
+					return old_SetString(self,FixTemperature(s),...)
 				end
 			end
 		end
@@ -687,7 +720,9 @@ local function GetPerishTime(inst,c)
 	local old_val = c.perishable.perishremainingtime
 	if old_val ~= nil then
 		local delta = old_val / modifier
-		return delta
+		if delta ~= nil and delta >= 0 then
+			return delta
+		end
 	end
 end
 
@@ -879,7 +914,7 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 			local perc = 1-(1-h.absorb)*(1-h.playerabsorb)
 			cn("armor_character",round2(perc*100,0))
 		end
-		if item.asunaheal_score and item.prefab == "asuna" and TUNING.ASUNA_HEAL_SCORE_SWORD
+		if item.asunaheal_score and prefab == "asuna" and TUNING.ASUNA_HEAL_SCORE_SWORD
 			and item.asunaheal_score < TUNING.ASUNA_HEAL_SCORE_SWORD
 		then
 			local asuna_proof = round2(math.floor((item.asunaheal_score/TUNING.ASUNA_HEAL_SCORE_SWORD)*100+0.5),0)
@@ -903,6 +938,17 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 				end
 			end
 		end
+		if c.growable and c.growable.GetStage then
+			local g = c.growable
+      local t = (g.pausedremaining ~= nil and math.max(0, math.floor(g.pausedremaining)))
+				or (g.targettime ~= nil and math.floor(g.targettime - _G.GetTime()))
+				or nil
+			if t then
+				local stage = g.stage ~= 1 and tonumber(g.stage) or 1;
+				local data = g.stages and g.stages[stage];
+				cn("growable",data and data.name or stage,round2(t),g.pausedremaining ~= nil and 1 or 0);
+			end
+		end
 	else --elseif prefab~="rocks" and prefab~="flint" then --No rocks and flint
 		--Part 1: primary info
 		if c.stewer and c.stewer.product and c.stewer.IsCooking and c.stewer:IsCooking() then
@@ -914,6 +960,17 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 		if c.cooldown and c.cooldown.GetTimeToCharged and not c.cooldown.charged then
 			local timer = round2(c.cooldown:GetTimeToCharged(),0)
 			cn("cooldown", timer)
+		end
+		if c.growable and c.growable.GetStage then
+			local g = c.growable
+      local t = (g.pausedremaining ~= nil and math.max(0, math.floor(g.pausedremaining)))
+				or (g.targettime ~= nil and math.floor(g.targettime - _G.GetTime()))
+				or nil
+			if t then
+				local stage = g.stage ~= 1 and tonumber(g.stage) or 1;
+				local data = g.stages and g.stages[stage];
+				cn("growable",data and data.name or stage,round2(t),g.pausedremaining ~= nil and 1 or 0);
+			end
 		end
 		--Part 2: secondary info
 		if c.armor and c.armor.absorb_percent and type(c.armor.absorb_percent)=="number" then
@@ -970,10 +1027,12 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 				end
 			elseif c.insulator.GetInsulation then
 				local insul,typ = c.insulator:GetInsulation()
-				if typ == _G.SEASONS.WINTER then
-					cn("warm",round2(insul,0))
-				elseif typ == _G.SEASONS.SUMMER then
-					cn("summer",round2(insul,0))
+				if insul ~= 0 then
+					if typ == _G.SEASONS.WINTER then
+						cn("warm",round2(insul,0))
+					elseif typ == _G.SEASONS.SUMMER then
+						cn("summer",round2(insul,0))
+					end
 				end
 			end
 		end
@@ -988,7 +1047,7 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 			local added_speed = math.floor((c.equippable.walkspeedmult - 1)*100+0.5)
 			cn("speed",added_speed)
 		end
-		if c.dapperness and c.dapperness.mitigates_rain and item.prefab ~= "umbrella" then
+		if c.dapperness and c.dapperness.mitigates_rain and prefab ~= "umbrella" then
 			cn("waterproof","90")
 		elseif item.protect_from_rain then
 			cn("waterproof",round2((item.protect_from_rain)*100,0))
@@ -1015,21 +1074,22 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 				can_eat = viewer.components.eater:CanEat(item)
 			end
 			if can_eat then
+				local ed = c.edible
 				local should_Estimate_Stale = viewer and viewer.should_Estimate_Stale --client priority
 				if not should_Estimate_Stale then
 					should_Estimate_Stale = food_estimation ~= 0
 				end
 				local hp,hg,sn
-				if should_Estimate_Stale and c.edible.GetSanity then
+				if should_Estimate_Stale and ed.GetSanity then
 					--print("Estimate")
-					hp=round2(c.edible:GetHealth(viewer),1)
-					hg=round2(c.edible:GetHunger(viewer),1)
-					sn=round2(c.edible:GetSanity(viewer),1)
+					hp=round2(ed:GetHealth(viewer),1)
+					hg=round2(ed:GetHunger(viewer),1)
+					sn=round2(ed:GetSanity(viewer),1)
 				else
 					--print("Not Estimate")
-					hp=round2(c.edible.healthvalue,1)
-					hg=round2(c.edible.hungervalue,1)
-					sn=round2(c.edible.sanityvalue,1)
+					hp=round2(ed.healthvalue,1)
+					hg=round2(ed.hungervalue,1)
+					sn=round2(ed.sanityvalue,1)
 				end
 				if viewer ~= nil and viewer.FoodValuesChanger ~= nil then --Особая функция, призвание которой - менять еду при съедании.
 					--print("+")
@@ -1042,6 +1102,18 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 						sn=round2(sn2,1)
 					end
 				end
+				do --check multiplier
+					local base_mult = viewer ~= nil and viewer.components.foodmemory ~= nil and viewer.components.foodmemory:GetFoodMultiplier(prefab) or 1
+					local hp_mult = (ed.healthabsorption or 1) * base_mult
+					local hg_mult = (ed.hungerabsorption or 1) * base_mult
+					local sn_mult = (ed.sanityabsorption or 1) * base_mult
+					hp = hp * hp_mult
+					hg = hg * hg_mult
+					sn = sn * sn_mult
+				end
+				if prefab == "petals_evil" then
+					sn = round2(sn - _G.TUNING.SANITY_TINY,1)
+				end
 				if hp > 0 then
 					hp = "+" .. tostring(hp)
 				end
@@ -1052,6 +1124,25 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 					sn = "+" .. tostring(sn)
 				end
 				cn("food",hg,sn,hp)
+				if ed.temperaturedelta ~= 0 then -- food has temperature
+					if ed.temperatureduration ~= 0 and ed.chill < 1 and viewer ~= nil and viewer.components.temperature ~= nil then
+						local delta_multiplier = 1
+						local duration_multiplier = 1
+						if ed.spice and _G.TUNING.SPICE_MULTIPLIERS[ed.spice] then
+							if _G.TUNING.SPICE_MULTIPLIERS[ed.spice].TEMPERATUREDELTA then
+								delta_multiplier = delta_multiplier + _G.TUNING.SPICE_MULTIPLIERS[ed.spice].TEMPERATUREDELTA
+							end
+							if _G.TUNING.SPICE_MULTIPLIERS[ed.spice].TEMPERATUREDURATION then
+								duration_multiplier = duration_multiplier + _G.TUNING.SPICE_MULTIPLIERS[ed.spice].TEMPERATUREDURATION
+							end
+						end
+						local delta, duration = ed.temperaturedelta * (1 - ed.chill) * delta_multiplier, ed.temperatureduration * duration_multiplier
+						cn('food_temperature',round2(delta), round2(duration))
+					end				
+				end
+				
+				
+				
 			end
 		end
 		if c.perishable ~= nil and c.perishable.updatetask ~= nil then
@@ -1173,10 +1264,10 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 			end
 		end
 		if c.tradable then
-			if c.tradable.goldvalue and c.tradable.goldvalue > 0 then
+			if c.tradable.goldvalue and c.tradable.goldvalue > 1 then
 				cn("trade_gold", c.tradable.goldvalue)
 			end
-			if c.tradable.rocktribute and c.tradable.rocktribute > 0 then
+			if c.tradable.rocktribute and c.tradable.rocktribute > 0 and _G.TheWorld.state.issummer then
 				cn("trade_rock", c.tradable.rocktribute)
 			end
 		end
@@ -1214,6 +1305,16 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 					cn("temperature",tostring(round2(temp,1)))
 				end
 			end
+		elseif prefab=="rainometer" then
+			local function inSine(t, b, c, d)
+				return -c * math.cos(t / d * (math.pi / 2)) + c + b
+			end
+			cn("precipitationrate",round2(inSine(_G.TheWorld.state.precipitationrate, 0, 0.75, 1),3).."/s") 
+			cn("wetness",round2(_G.TheWorld.state.wetness,0)) 
+		elseif prefab=="winterometer" then
+			local w=_G.TheWorld.state
+			local tt=round2(w.temperature,1)
+			cn("temperature",tt)
 		end
 		--Charges: lightning rod / lamp
 		if item.chargeleft and item.chargeleft > 0 then	
@@ -1301,10 +1402,32 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 	if viewer and type(viewer)=="table" and viewer.components and viewer.components.inventory then
 		local weapon = viewer.components.inventory:GetEquippedItem(_G.EQUIPSLOTS.HANDS)
 		if weapon then
+			local resist = nil --base resist
+			local total_resist = nil --base + bonus resist
+			local now = nil --amount of current resist
 			if weapon.prefab=="icestaff" and c.freezable then
-				cn("resist",c.freezable.resistance)
+				resist = c.freezable.resistance
+				total_resist = c.freezable.ResolveResistance and c.freezable:ResolveResistance() or resist
+				if c.freezable.coldness and c.freezable.coldness ~= 0 then
+					now = round2(total_resist - c.freezable.coldness,1)
+				end
+				--cn("resist",c.freezable.resistance)
 			elseif (weapon.prefab=="blowdart_sleep" or weapon.prefab=="panflute") and c.sleeper then
-				cn("resist",c.sleeper.resistance)
+				resist = c.sleeper.resistance
+				total_resist = resist -- there is sleep time bonus but not sleep armor bonus
+				if c.sleeper.sleepiness and c.sleeper.sleepiness ~= 0 then
+					now = round2(total_resist - c.sleeper.sleepiness,1)
+				end
+				--cn("resist",c.sleeper.resistance)
+			end
+			if resist then
+				if total_resist ~= resist then
+					resist = resist .. '+' .. round2(math.abs(total_resist-resist),1)
+				end
+				if now then
+					resist = now .. ' / ' .. resist
+				end
+				cn("resist",resist)
 			end
 		end
 	end
@@ -1399,16 +1522,16 @@ do
 		if c == nil then --Нет локального игрока или classified
 			return ""
 		end
-		--c.showme_hint
-		local i = string.find(c.showme_hint,';',1,true)
+		--c.showme_hint1
+		local i = string.find(c.showme_hint1,';',1,true)
 		if i == nil then --Строка имеет неправильный формат.
 			return ""
 		end
-		local guid = _G.tonumber(c.showme_hint:sub(1,i-1))
+		local guid = _G.tonumber(c.showme_hint1:sub(1,i-1))
 		if guid ~= inst.GUID then --guid не совпадает (либо вообще nil)
 			return ""
 		end
-		return c.showme_hint:sub(i+1)
+		return c.showme_hint1:sub(i+1)
 	end
 	if CLIENT_SIDE then
 		--patching Get Display Name. Нужно только клиенту.
@@ -1457,7 +1580,7 @@ do
 		local LOCAL_STRING_CACHE = {} --База данных строк, чтобы не обсчитывать замены каждый раз (правда, будет потихоньку пожирать память)
 		AddClassPostConstruct("widgets/hoverer",function(hoverer) --hoverer=self
 			local old_SetString = hoverer.text.SetString
-			hoverer.text.SetString = function(text,str) --text=self
+			hoverer.text.SetString = function(text,str,...) --text=self
 				--print(tostring(str))
 				local target = _G.TheInput:GetHUDEntityUnderMouse()
 				if target ~= nil then
@@ -1563,7 +1686,7 @@ do
 				else
 					--print("target nil")
 				end
-				return old_SetString(text,str)
+				return old_SetString(text,str,...)
 			end
 		end)
 	end
@@ -1577,18 +1700,18 @@ do
 		if item ~= nil and item.components ~= nil then
 			local s = GetTestString(item,player) --Формируем строку на сервере.
 			if s ~= "" then
-				player.player_classified.net_showme_hint:set(guid..";"..s) --Пакуем в строку и отсылаем обратно тому же игроку.
+				player.player_classified.net_showme_hint1:set(guid..";"..s) --Пакуем в строку и отсылаем обратно тому же игроку.
 			end
 		end
 	end)
 
 	--networking
 	AddPrefabPostInit("player_classified",function(inst)
-		inst.showme_hint = ""
-		inst.net_showme_hint = _G.net_string(inst.GUID, "showme_hint", "showme_hint_dirty")
+		inst.showme_hint1 = ""
+		inst.net_showme_hint1 = _G.net_string(inst.GUID, "showme_hint1", "showme_hint_dirty1")
 		if CLIENT_SIDE then
-			inst:ListenForEvent("showme_hint_dirty",function(inst)
-				inst.showme_hint = inst.net_showme_hint:value()
+			inst:ListenForEvent("showme_hint_dirty1",function(inst)
+				inst.showme_hint1 = inst.net_showme_hint1:value()
 			end)
 		end
 	end)
@@ -1658,7 +1781,7 @@ do
 		--	print("Found!!!!! Problem solved",err)
 		--end
 		if c:IsEmpty() then
-			inst.net_ShowMe_chest:set('')
+			inst.net_ShowMe_chest1:set('')
 			return
 		end
 		local arr = {} -- [префаб]=true
@@ -1691,7 +1814,7 @@ do
 				s = k
 			end
 		end
-		inst.net_ShowMe_chest:set(s) --Посылаем данные.
+		inst.net_ShowMe_chest1:set(s) --Посылаем данные.
 	end
 	
 	--Обновляет подсветку сундука. Функция должна сама узнавать, что в руке игрока.
@@ -1723,7 +1846,7 @@ do
 	
 	local function OnShowMeChestDirty(inst)
 		--inst.components.HuntGameLogic.hunt_kills = inst.components.HuntGameLogic.net_hunt_kills:value()
-		local str = inst.net_ShowMe_chest:value()
+		local str = inst.net_ShowMe_chest1:value()
 		--inst.test_str = str --test
 		--print('Test Chest:',str)
 		local t = inst.ShowMe_chest_table
@@ -1737,9 +1860,9 @@ do
 	end	
 
 	local function InitChest(inst)
-		inst.net_ShowMe_chest = net_string(inst.GUID, "ShowMe_chest", "ShowMe_chest_dirty" )
+		inst.net_ShowMe_chest1 = net_string(inst.GUID, "ShowMe_chest1", "ShowMe_chest_dirty1" )
 		if CLIENT_SIDE then
-			inst:ListenForEvent("ShowMe_chest_dirty", OnShowMeChestDirty)
+			inst:ListenForEvent("ShowMe_chest_dirty1", OnShowMeChestDirty)
 			chests_around[inst] = true
 			inst.ShowMe_chest_table = {}
 			inst.ShowTable = function() for k in pairs(inst.ShowMe_chest_table) do print(k) end end --debug

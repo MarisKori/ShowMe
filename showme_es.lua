@@ -75,6 +75,7 @@ SHOWME_STRINGS = {
 	uses_1 = "Un uso de ",
 	uses_many = " usos de ", --X uses of Y, where X > 1
 	days = " días", --Spoil in N days.
+	temperature = 't',
 }
 
 --Food tags are in genitive case.

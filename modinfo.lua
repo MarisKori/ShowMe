@@ -1,6 +1,6 @@
 -- information about the mod
-version = "0.36"
-version_compatible = "0.30"
+version = "0.40"
+version_compatible = "0.40"
 name = "Show Me"
 author = "Star"
 forumthread = ""

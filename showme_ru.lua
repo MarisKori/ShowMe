@@ -55,11 +55,15 @@ MY_STRINGS_OVERRIDE = {
 	durability = 'Прочность:',
 	strength = 'Сила:',
 	--aoe = 'AoE:',
+	precipitationrate = "Дождь:",
+	wetness = "Влага мира:",
 }
 
 SHOWME_STRINGS = {
 	loyal = "вечная",
 	of = " из ",
+	temperature = 'Температура',
+	paused = 'Пауза',
 }
 
 FOOD_TAGS = { --"dried" and "precook" are excluded.

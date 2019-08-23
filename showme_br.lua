@@ -53,6 +53,7 @@ SHOWME_STRINGS = {
     uses_1 = "1 uso de ",
     uses_many = " usos de ", --X uses of Y, where X > 1
     days = " dias", --Spoil in N days.
+		temperature = 'Temp.',
 }
  
 FOOD_TAGS = { --"dried" and "precook" are excluded.
@@ -81,7 +82,7 @@ FOOD_TAGS = { --"dried" and "precook" are excluded.
     starch = "amido", --about corn, pumpkin, cave_banana
     grapes = "videira", --grapricot
     citrus = "citrico", --grapricot_cooked, limon
-    tuber = tuberculo"", --yamion
+    tuber = "tuberculo", --yamion
     shellfish = "marisco", --limpets, mussel
    
     --BEEFALO MILK and CHEESE mod

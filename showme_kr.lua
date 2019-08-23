@@ -62,6 +62,7 @@ SHOWME_STRINGS = {
 	units_1 = "1개의 ",
 	units_many = "개의 ",
 	days = "일", --Spoil in N days.
+	temperature = 't',
 }
 
 FOOD_TAGS = { --"dried" and "precook" are excluded.

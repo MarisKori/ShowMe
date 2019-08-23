@@ -1,3 +1,22 @@
+v 0.39
+- Added support of stats absorption by food.
+- Fixed incompatibility with Follower Badges (finally!).
+- Removed gold value 1 or less.
+- Added some Serp's ideas: rainometer info etc
+- Now rock value available only in summer.
+- Added more info while wearing sleep/ice weapon.
+- Added temperature info for food.
+- Added growable component.
+
+TODO: spices of food. Remove uses of items. Buff name from food. More options (need testing).
+Добавить совместимость с  Item Info Client. True stale info (время до желтой порчи).
+
+v0.38
+- Fixed crash in Brazilian language.
+
+v0.37
+- Updated Traditional Chinese Language.
+
 v0.36
 - Fixed Chinese language.
 - Added Spanish language.

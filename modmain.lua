@@ -160,12 +160,12 @@ local function decodeFirstSymbol(sym)
 	elseif c>=32 and c<=62 then idx=c+31
 	elseif c>=17 and c<=31 then idx=c+77
 	else idx=0 end
-	print('dec_idx',idx,tostring(MY_STRINGS[idx] and MY_STRINGS[idx].key))
+	--print('dec_idx',idx,tostring(MY_STRINGS[idx] and MY_STRINGS[idx].key))
 	return idx
 end
 
 --Encode index to one ascii symbol, starting from "A".
-local function encodeFirstSymbol(idx) print('idx',idx)
+local function encodeFirstSymbol(idx) --print('idx',idx)
 	if (idx <= 62) then return string.char(idx+64) -- 1-62: chars 65-126
 	elseif (idx <= 93) then return string.char(idx-31) -- 63-93: chars 32-62
 	elseif (idx <= 108) then return string.char(idx-77) -- 94-108: chars = error (17-31)

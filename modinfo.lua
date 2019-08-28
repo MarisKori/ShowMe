@@ -1,5 +1,5 @@
 -- information about the mod
-version = "0.43"
+version = "0.44"
 version_compatible = "0.43"
 name = "Show Me"
 author = "Star, +Serp"

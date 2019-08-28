@@ -135,6 +135,7 @@ local MY_STRINGS =
 	{wetness="Global Wetness:" },
 	{growable='' },
 }
+print("Show Me MY_STRINGS =",#MY_STRINGS); --67 now. Must be less than 94
 
 SHOWME_STRINGS = {
 	loyal = "forever", --for very loyal pigman with loyalty over 9000
@@ -150,13 +151,36 @@ SHOWME_STRINGS = {
 
 FOOD_TAGS = {}
 
+--Docode from char to index in MY_STRINGS
+local function decodeFirstSymbol(sym)
+	--local my_s = MY_STRINGS[string.byte(v:sub(1,1))-64]
+	local c = string.byte(sym);
+	local idx;
+	if c>=64 and c<=126 then idx=c-64
+	elseif c>=32 and c<=62 then idx=c+31
+	elseif c>=17 and c<=31 then idx=c+77
+	else idx=0 end
+	print('dec_idx',idx,tostring(MY_STRINGS[idx] and MY_STRINGS[idx].key))
+	return idx
+end
+
+--Encode index to one ascii symbol, starting from "A".
+local function encodeFirstSymbol(idx) print('idx',idx)
+	if (idx <= 62) then return string.char(idx+64) -- 1-62: chars 65-126
+	elseif (idx <= 93) then return string.char(idx-31) -- 63-93: chars 32-62
+	elseif (idx <= 108) then return string.char(idx-77) -- 94-108: chars = error (17-31)
+	else return string.char(63) end -- error
+	--not 63 and 64
+	--sym = i < 63 and string.char(i+64) or string.char(i-32), -- A+
+end
+
 MY_DATA = {}
 for i,v in ipairs(MY_STRINGS) do
 	for k,str in pairs(v) do --одна пара
 		MY_DATA[k] = {
 			desc = str,
 			id = i,
-			sym = string.char(i+64), -- A+
+			sym = encodeFirstSymbol(i), -- A+
 			fn = nil, --Function to return the proper string. By default: desc + " " + param1
 			percent = nil, --To add "%" at the end of the number
 		}
@@ -373,7 +397,7 @@ end
 
 MY_DATA.growable.fn = function(arr) -- stage num or name, time, paused (1/0)
 	arr=arr.param;
-	local stagename = tonumber(arr[1]) and ('#' .. tostring(arr[1])) or tostring(arr[1]);
+	local stagename = tonumber(arr[1]) and ('#' .. arr[1]) or arr[1];
 	local time_str = DataTimerFn(arr[2]);
 	return stagename .. (arr[3] == '1' and ' ('..SHOWME_STRINGS.paused..'): ' or ': ') .. time_str;
 end
@@ -1327,7 +1351,7 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 				return -c * math.cos(t / d * (math.pi / 2)) + c + b
 			end
 			cn("precipitationrate",round2(inSine(_G.TheWorld.state.precipitationrate, 0, 0.75, 1),3).."/s") 
-			cn("wetness",round2(_G.TheWorld.state.wetness,0)) 
+			cn("wetness",round2(_G.TheWorld.state.wetness,1)) 
 		elseif prefab=="winterometer" then
 			local w=_G.TheWorld.state
 			local tt=round2(w.temperature,1)
@@ -1540,15 +1564,15 @@ do
 			return ""
 		end
 		--c.showme_hint
-		local i = string.find(c.showme_hint1,';',1,true)
+		local i = string.find(c.showme_hint2,';',1,true)
 		if i == nil then --Строка имеет неправильный формат.
 			return ""
 		end
-		local guid = _G.tonumber(c.showme_hint1:sub(1,i-1))
+		local guid = _G.tonumber(c.showme_hint2:sub(1,i-1))
 		if guid ~= inst.GUID then --guid не совпадает (либо вообще nil)
 			return ""
 		end
-		return c.showme_hint1:sub(i+1)
+		return c.showme_hint2:sub(i+1)
 	end
 	if CLIENT_SIDE then
 		--patching Get Display Name. Нужно только клиенту.
@@ -1645,7 +1669,7 @@ do
 							if v ~= "" then
 								local param_str = v:sub(2)
 								local data = { param = UnpackData(param_str,","), param_str=param_str }
-								local my_s = MY_STRINGS[string.byte(v:sub(1,1))-64]
+								local my_s = MY_STRINGS[decodeFirstSymbol(v:sub(1,1))];
 								if my_s ~= nil then
 									data.data = MY_DATA[my_s.key]
 								end
@@ -1717,18 +1741,19 @@ do
 		if item ~= nil and item.components ~= nil then
 			local s = GetTestString(item,player) --Формируем строку на сервере.
 			if s ~= "" then
-				player.player_classified.net_showme_hint1:set(guid..";"..s) --Пакуем в строку и отсылаем обратно тому же игроку.
+				player.player_classified.net_showme_hint2:set(guid..";"..s) --Пакуем в строку и отсылаем обратно тому же игроку.
 			end
 		end
 	end)
 
 	--networking
+	-- showme_hint2 => "showme_hintbua." -- hash value: 78865, Ratio: 0.000078865
 	AddPrefabPostInit("player_classified",function(inst)
-		inst.showme_hint1 = ""
-		inst.net_showme_hint1 = _G.net_string(inst.GUID, "showme_hint1", "showme_hint_dirty1")
+		inst.showme_hint2 = ""
+		inst.net_showme_hint2 = _G.net_string(inst.GUID, "showme_hintbua.", "showme_hint_dirty2")
 		if CLIENT_SIDE then
-			inst:ListenForEvent("showme_hint_dirty1",function(inst)
-				inst.showme_hint1 = inst.net_showme_hint1:value()
+			inst:ListenForEvent("showme_hint_dirty2",function(inst)
+				inst.showme_hint2 = inst.net_showme_hint2:value()
 			end)
 		end
 	end)
@@ -1736,6 +1761,9 @@ end
 
 --Обработка сундуков
 do
+	local MAIN_VAR_NAME = 'net_ShowMe_chest';
+	local NETVAR_NAME = 'ShowMe_chestlq_.'; -- hash value: 983115,  Ratio: 0.000983115
+	local EVENT_NAME = 'ShowMe_chest_dirty';
 	--[[
 	If you want add your custom chest, use this code:
 		TUNING.MONITOR_CHESTS = TUNING.MONITOR_CHESTS or {}
@@ -1749,13 +1777,12 @@ do
 		safebox=1, safechest=1, safeicebox=1, --Safe mod.
 		red_treasure_chest=1, purple_treasure_chest=1, green_treasure_chest=1, blue_treasure_chest=1, --Treasure Chests mod.
 		backpack=1, candybag=1, icepack=1, piggyback=1, krampus_sack=1,
+		venus_icebox=1, chesterchest=1, --SL mod 
 	}
 	if TUNING.MONITOR_CHESTS then
 		for k in pairs(TUNING.MONITOR_CHESTS) do
 			MONITOR_CHESTS[k] = 1
 		end
-	--else
-		--TUNING.MONITOR_CHESTS = MONITOR_CHESTS --Это не нужно.
 	end
 	local _active --Текущий предмет в курсоре (на клиенте).
 	local _ing_prefab --Ингредиент. Через 5 секунд убирается.
@@ -1798,7 +1825,7 @@ do
 		--	print("Found!!!!! Problem solved",err)
 		--end
 		if c:IsEmpty() then
-			inst.net_ShowMe_chst:set('')
+			inst[MAIN_VAR_NAME]:set('')
 			return
 		end
 		local arr = {} -- [префаб]=true
@@ -1831,7 +1858,7 @@ do
 				s = k
 			end
 		end
-		inst.net_ShowMe_chst:set(s) --Посылаем данные.
+		inst[MAIN_VAR_NAME]:set(s) --Посылаем данные.
 	end
 	
 	--Обновляет подсветку сундука. Функция должна сама узнавать, что в руке игрока.
@@ -1863,7 +1890,7 @@ do
 	
 	local function OnShowMeChestDirty(inst)
 		--inst.components.HuntGameLogic.hunt_kills = inst.components.HuntGameLogic.net_hunt_kills:value()
-		local str = inst.net_ShowMe_chst:value()
+		local str = inst[MAIN_VAR_NAME]:value()
 		--inst.test_str = str --test
 		--print('Test Chest:',str)
 		local t = inst.ShowMe_chest_table
@@ -1877,9 +1904,9 @@ do
 	end	
 
 	local function InitChest(inst)
-		inst.net_ShowMe_chst = net_string(inst.GUID, "ShowMe_chst", "ShowMe_chst_dirty" )
+		inst[MAIN_VAR_NAME] = net_string(inst.GUID, NETVAR_NAME, EVENT_NAME )
 		if CLIENT_SIDE then
-			inst:ListenForEvent("ShowMe_chst_dirty", OnShowMeChestDirty)
+			inst:ListenForEvent(EVENT_NAME, OnShowMeChestDirty)
 			chests_around[inst] = true
 			inst.ShowMe_chest_table = {}
 			inst.ShowTable = function() for k in pairs(inst.ShowMe_chest_table) do print(k) end end --debug
@@ -1892,6 +1919,7 @@ do
 		end
 		inst:ListenForEvent("onclose", OnClose)
 		inst:ListenForEvent("itemget", OnClose) --Для рюкзаков.
+		--There is inject in SmarterCrockPot!! : ContainerWidget.old_on_item_lose = ContainerWidget.OnItemLose
 		inst:ListenForEvent("itemlose", OnClose)
 		inst:DoTaskInTime(0,function(inst)
 			OnClose(inst) --Изначально тоже посылаем данные, а не только при закрытии. Ведь сундук мог быть загружен.

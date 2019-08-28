@@ -1,8 +1,8 @@
 -- information about the mod
-version = "0.40"
-version_compatible = "0.40"
+version = "0.43"
+version_compatible = "0.43"
 name = "Show Me"
-author = "Star"
+author = "Star, +Serp"
 forumthread = ""
 description = version --"" --GAMELANGUAGE=="RU"
 	--and "Рассказывает о предметах и существах после действия \"Осмотреть\"."

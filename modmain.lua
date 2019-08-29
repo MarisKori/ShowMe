@@ -156,7 +156,7 @@ local function decodeFirstSymbol(sym)
 	--local my_s = MY_STRINGS[string.byte(v:sub(1,1))-64]
 	local c = string.byte(sym);
 	local idx;
-	if c>=64 and c<=126 then idx=c-64
+	if c>=64 and c<=126 then idx=c-64 -- '@' is en "error" symbol or use "as is" (a param string). It must be converted to 0.
 	elseif c>=32 and c<=62 then idx=c+31
 	elseif c>=17 and c<=31 then idx=c+77
 	else idx=0 end
@@ -165,6 +165,8 @@ local function decodeFirstSymbol(sym)
 end
 
 --Encode index to one ascii symbol, starting from "A".
+--Symbol "@" is a special symbol for unformatted info, e.g. "@Hello".
+--Symbol \2 is a special separator. All info after \2 is ignored (in whole string).
 local function encodeFirstSymbol(idx) --print('idx',idx)
 	if (idx <= 62) then return string.char(idx+64) -- 1-62: chars 65-126
 	elseif (idx <= 93) then return string.char(idx-31) -- 63-93: chars 32-62
@@ -192,7 +194,7 @@ end
 
 local function DefaultDisplayFn(arr) --На вход особая структура: { data, param }. data - ссылка на элемент MY_DATA, a param - ссылка на массив п.
 	if arr.data == nil then
-		return arr.param_str --Выводим строку в том виде, в каком пришла от сервера (без первого символа)
+		return arr.param_str --Выводим строку в том виде, в каком пришла от сервера (без первого символа). Реакция на символ "@"
 	end
 	if arr.data.sign ~= nil and (tonumber(arr.param[1]) or -1) >= 0 then
 		arr.param[1] = "+" .. tostring(arr.param[1])
@@ -229,7 +231,7 @@ MY_DATA.water_poisoned.fn = function(arr)
 	return arr.data.desc
 end
 
-local function DataTimerFn(seconds)
+local function DataTimerFn(seconds) --if (not seconds) return 'error' end
 	local total = math.abs(tonumber(seconds))
 	local hours = math.floor(total * 0.0002777777777777) --целое кол-во часов. 1/3600
 	local mins = math.floor((total - (hours * 3600)) * 0.01666666666666) --целое. 1/60
@@ -962,7 +964,7 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 			if asuna_proof > 99 then
 				asuna_proof = 99
 			end
-			table.insert(desc_table, "$Asuna Proof: "..asuna_proof.."%")
+			table.insert(desc_table, "@Asuna Proof: "..asuna_proof.."%")
 		end
 		--inst.components.domesticatable:GetObedience()
 		if c.domesticatable ~= nil then
@@ -1038,7 +1040,7 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 					)
 				)
 				if p ~= nil then
-					table.insert(desc_table, "$Type: "..p)
+					table.insert(desc_table, "@Type: "..p)
 				end
 			end
 		elseif c.zupalexsrangedweapons ~= nil
@@ -1328,15 +1330,15 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 			cn(c.fishable.fishleft==1 and "fish" or "fishes",c.fishable.fishleft)
 		elseif prefab=="aqvarium" and item.data then
 			if item.data.seeds and item.data.seeds>0 then
-				table.insert(desc_table, "$Seeds: "..tostring(item.data.seeds))
+				table.insert(desc_table, "@Seeds: "..tostring(item.data.seeds))
 			end
 			if item.data.meat and item.data.meat>0 then
-				table.insert(desc_table, "$Meat: "..tostring(item.data.meat))
+				table.insert(desc_table, "@Meat: "..tostring(item.data.meat))
 				--desc = cn(desc,item.data.meat,"Meat:",true)
 			end
 			local need_wet= item.data.need_wet or 60
 			if item.data.wet and item.data.wet>0 and item.data.wet<need_wet then
-				table.insert(desc_table, "$Water: "..tostring(round2(100*item.data.wet/need_wet).."%"))
+				table.insert(desc_table, "@Water: "..tostring(round2(100*item.data.wet/need_wet).."%"))
 				--desc = cn(desc,round2(100*item.data.wet/need_wet).."%","Water:",true)
 			end
 			if item.total_heat then
@@ -1359,14 +1361,14 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 		end
 		--Charges: lightning rod / lamp
 		if item.chargeleft and item.chargeleft > 0 then	
-			table.insert(desc_table, "$Days left: "..tostring(math.floor(item.chargeleft+0.5)))
+			table.insert(desc_table, "@Days left: "..tostring(math.floor(item.chargeleft+0.5)))
 		end
 		--Mod support:
 		if item.GetShowItemInfo then
 			local custom1, custom2, custom3 = item:GetShowItemInfo()
-			if custom1 then table.insert(desc_table, "$"..tostring(custom1)) end
-			if custom2 then table.insert(desc_table, "$"..tostring(custom2)) end
-			if custom3 then table.insert(desc_table, "$"..tostring(custom3)) end
+			if custom1 then table.insert(desc_table, "@"..tostring(custom1)) end
+			if custom2 then table.insert(desc_table, "@"..tostring(custom2)) end
+			if custom3 then table.insert(desc_table, "@"..tostring(custom3)) end
 		end
 		if c.pickable and c.pickable.task then --Трава и ветки.
 			local targettime = c.pickable.targettime
@@ -1379,7 +1381,7 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 		end
 		--[[if c.witherable then
 			local time = GetTime()
-			table.insert(desc_table, "$witherable: "
+			table.insert(desc_table, "@witherable: "
 				..tostring(c.delay_to_time and (time-c.delay_to_time)) .. ", "
 				..tostring(c.task_to_time and (time-c.task_to_time)) .. ", "
 				..tostring(c.protect_to_time and (time-c.protect_to_time)) .. ", "
@@ -1388,7 +1390,7 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 		end
 		if c.diseaseable then
 			local time = GetTime()
-			table.insert(desc_table, "$diseaseable: "
+			table.insert(desc_table, "@diseaseable: "
 				--..tostring(c._spreadtask and (time-c.delay_to_time)) .. ", "
 				--..tostring(c.task_to_time and (time-c.task_to_time)) .. ", "
 				--..tostring(c.protect_to_time and (time-c.protect_to_time)) .. ", "
@@ -1500,7 +1502,7 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 	--	desc = desc .. "\n" --Поднимаем описание предмета, чтобы оно было НАД предметом. Но лучше это сделать на клиенте.
 	--end
 	
-	return table.concat(desc_table,"\2")
+	return table.concat(desc_table,"\2") --an error with no info
 end
 
 --Main description function
@@ -1669,7 +1671,7 @@ do
 							if v ~= "" then
 								local param_str = v:sub(2)
 								local data = { param = UnpackData(param_str,","), param_str=param_str }
-								local my_s = MY_STRINGS[decodeFirstSymbol(v:sub(1,1))];
+								local my_s = MY_STRINGS[decodeFirstSymbol(v:sub(1,1))]; -- if "@", must pass nil
 								if my_s ~= nil then
 									data.data = MY_DATA[my_s.key]
 								end

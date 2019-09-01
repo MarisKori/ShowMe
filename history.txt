@@ -1,3 +1,11 @@
+v0.47
+- Added sanity aura info.
+- Fixed a bug in not eng/rus language packs.
+- Added hover description for "undefined" value in mod settings.
+
+v0.40
+- Added grow stage timer.
+
 v 0.39
 - Added support of stats absorption by food.
 - Fixed incompatibility with Follower Badges (finally!).

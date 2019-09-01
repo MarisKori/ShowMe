@@ -1,6 +1,6 @@
 -- information about the mod
-version = "0.44"
-version_compatible = "0.44"
+version = "0.47"
+version_compatible = "0.46"
 name = "Show Me"
 author = "Star, +Serp"
 forumthread = ""
@@ -41,7 +41,6 @@ local color_options = {
 	{description = "100%", data = 1,},
 }
 
-
 configuration_options =
 {
 	--[[{
@@ -63,7 +62,7 @@ configuration_options =
 		label = "Food Style",
 		options = 
 		{
-			{description = "undefined", data = 0, hover = "?"},
+			{description = "undefined", data = 0, hover = "Default is \"long\""},
 			{description = "long", data = 1, hover = "Hunger: +12.5 / Sanity: -10 / Health: +3"},
 			{description = "short", data = 2, hover = "+12.5 / -10 / +3"},
 		}, 
@@ -74,9 +73,9 @@ configuration_options =
 		label = "Food Properties Order",
 		options = 
 		{
-			{description = "undefined", data = 0, hover = "?"},
-			{description = "interface", data = 1, hover = "Hunger / Sanity / Health"},
-			{description = "wikia", data = 2, hover = "Health / Hunger / Sanity"},
+			{description = "Indefined", data = 0, hover = "Default if \"interface\""},
+			{description = "Interface", data = 1, hover = "Hunger / Sanity / Health"},
+			{description = "Wikia", data = 2, hover = "Health / Hunger / Sanity"},
 		}, 
 		default = 0,
 	},
@@ -86,7 +85,7 @@ configuration_options =
 		hover = "Should we estimate the stale status?",
 		options = 
 		{
-			{description = "undefined", data = -1, hover = "Yes"},
+			{description = "Undefined", data = -1, hover = "Yes"},
 			{description = "No", data = 0, hover = "No"},
 			{description = "Yes", data = 1, hover = "Yes"},
 		}, 
@@ -98,7 +97,7 @@ configuration_options =
 		hover = "For example, units of meat, units of veggie etc.",
 		options = 
 		{
-			{description = "undefined", data = -1, hover = "Yes"},
+			{description = "Undefined", data = -1, hover = "Yes"},
 			{description = "No", data = 0, hover = "No"},
 			{description = "Yes", data = 1, hover = "Yes"},
 			{description = "Forbidden", data = 2, hover = "Server won't send food info to clients\nand their settings will not matter."},

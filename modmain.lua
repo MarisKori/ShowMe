@@ -134,8 +134,10 @@ local MY_STRINGS =
 	{precipitationrate="Global Rain:" },
 	{wetness="Global Wetness:" },
 	{growable='' },
+	
+	{sanityaura='Sanity Aura:' },
 }
-print("Show Me MY_STRINGS =",#MY_STRINGS); --67 now. Must be less than 94
+--print("Show Me MY_STRINGS =",#MY_STRINGS); --68 now. Must be less than 94
 
 SHOWME_STRINGS = {
 	loyal = "forever", --for very loyal pigman with loyalty over 9000
@@ -231,7 +233,10 @@ MY_DATA.water_poisoned.fn = function(arr)
 	return arr.data.desc
 end
 
-local function DataTimerFn(seconds) --if (not seconds) return 'error' end
+local function DataTimerFn(seconds)
+	if (not seconds) then
+		return 'error'
+	end
 	local total = math.abs(tonumber(seconds))
 	local hours = math.floor(total * 0.0002777777777777) --целое кол-во часов. 1/3600
 	local mins = math.floor((total - (hours * 3600)) * 0.01666666666666) --целое. 1/60
@@ -266,6 +271,7 @@ end
 
 MY_DATA.sanity_character.percent = true
 MY_DATA.sanity.sign = true
+MY_DATA.sanityaura.sign = true
 MY_DATA.dmg_character.percent = true
 MY_DATA.dmg_character.sign = true
 MY_DATA.speed.percent = true
@@ -411,7 +417,7 @@ if show_food_units == 0 or show_food_units == 2 then
 	MY_DATA.units_of.hidden = true --Work on client only.
 end
 
-
+local SHOWME_STRINGS_EN_OLD;
 function UpdateNewLanguage()
 	--print(MY_STRINGS_OVERRIDE)
 	if MY_STRINGS_OVERRIDE ~= nil then --Меняем локальный перевод (в т.ч. для хоста).
@@ -424,6 +430,11 @@ function UpdateNewLanguage()
 		end
 	end
 	--print(MY_STRINGS.aggro[1])
+	for k,v in pairs(SHOWME_STRINGS_EN_OLD) do
+		if not SHOWME_STRINGS[k] then
+			SHOWME_STRINGS[k] = v
+		end
+	end
 end
 
 
@@ -447,6 +458,7 @@ do --Пытаемся определить язык и загрузить соо
 			return
 		end
 		lang = lang:lower()
+		SHOWME_STRINGS_EN_OLD = SHOWME_STRINGS;
 		if support_languages[lang] ~= nil then
 			if support_languages[lang] ~= true then --алиас
 				lang = support_languages[lang]
@@ -992,6 +1004,22 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 				cn("growable",data and data.name or stage,round2(t),g.pausedremaining ~= nil and 1 or 0);
 			end
 		end
+		if c.sanityaura then
+			local s = c.sanityaura;
+			local aura_val = s.aurafn and s.aurafn(item, viewer) or s.aura
+			if aura_val then
+				if s.fallofffn then -- fallofffn but not distance
+					local fall = s.fallofffn(item, viewer, 99)
+					if fall and fall ~= 0 and (fall < 0.98 or fall > 1.02) then
+						aura_val = aura_val / fall;
+					end
+				end
+				aura_val = round2(aura_val,1)
+				if aura_val ~= 0 then
+					cn("sanityaura",aura_val)
+				end
+			end
+		end
 	else --elseif prefab~="rocks" and prefab~="flint" then --No rocks and flint
 		--Part 1: primary info
 		if c.stewer and c.stewer.product and c.stewer.IsCooking and c.stewer:IsCooking() then
@@ -1085,6 +1113,24 @@ function GetTestString(item,viewer) --Отныне форкуемся от Tell 
 		elseif c.equippable and c.equippable.dapperness and type(c.equippable.dapperness)=="number" and c.equippable.dapperness~=0 then
 			local sanity = round2(c.equippable.dapperness*54,1)
 			cn("sanity",sanity)
+		elseif prefab == "flower_evil" then
+			cn("sanity",-_G.TUNING.SANITY_TINY)
+		end
+		if c.sanityaura then
+			local s = c.sanityaura;
+			local aura_val = s.aurafn and s.aurafn(item, viewer) or s.aura
+			if aura_val then
+				if s.fallofffn then -- fallofffn but not distance
+					local fall = s.fallofffn(item, viewer, 99)
+					if fall and fall ~= 0 and (fall < 0.98 or fall > 1.02) then
+						aura_val = aura_val / fall;
+					end
+				end
+				aura_val = round2(aura_val,1)
+				if aura_val ~= 0 then
+					cn("sanityaura",aura_val)
+				end
+			end
 		end
 		if c.equippable and c.equippable.walkspeedmult and c.equippable.walkspeedmult ~= 1 then
 			local added_speed = math.floor((c.equippable.walkspeedmult - 1)*100+0.5)
@@ -1911,7 +1957,7 @@ do
 			inst:ListenForEvent(EVENT_NAME, OnShowMeChestDirty)
 			chests_around[inst] = true
 			inst.ShowMe_chest_table = {}
-			inst.ShowTable = function() for k in pairs(inst.ShowMe_chest_table) do print(k) end end --debug
+			--inst.ShowTable = function() for k in pairs(inst.ShowMe_chest_table) do print(k) end end --debug
 			inst:ListenForEvent('onremove', function(inst)
 				chests_around[inst] = nil
 			end)
